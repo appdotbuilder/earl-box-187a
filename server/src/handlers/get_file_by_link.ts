@@ -1,12 +1,30 @@
+import { db } from '../db';
+import { uploadedFilesTable } from '../db/schema';
 import { type GetFileByLinkInput, type UploadedFile } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getFileByLink(input: GetFileByLinkInput): Promise<UploadedFile | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is:
-    // 1. Query the database for a file with the given public link
-    // 2. Return the file metadata if found
-    // 3. Return null if no file is found with that link
-    // Note: This will be used to serve files when users access the public links
-    
-    return Promise.resolve(null); // Placeholder - should return actual file data or null
-}
+export const getFileByLink = async (input: GetFileByLinkInput): Promise<UploadedFile | null> => {
+  try {
+    // Query the database for a file with the given public link
+    const results = await db.select()
+      .from(uploadedFilesTable)
+      .where(eq(uploadedFilesTable.public_link, input.public_link))
+      .limit(1)
+      .execute();
+
+    // Return the file if found, otherwise null
+    if (results.length === 0) {
+      return null;
+    }
+
+    const file = results[0];
+    return {
+      ...file,
+      // No numeric conversions needed - all fields are either strings, integers, or dates
+      // uploaded_at is already a Date object from the database
+    };
+  } catch (error) {
+    console.error('Failed to retrieve file by public link:', error);
+    throw error;
+  }
+};
